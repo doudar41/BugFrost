@@ -1,0 +1,54 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Tilemaps;
+using UnityEngine.AI;
+
+//This script is for player gameObject which moving by clicking on map with NavMesh
+
+public class BugAI : MonoBehaviour
+{
+    [SerializeField]
+    private NavMeshAgent agent;
+    [SerializeField]
+    private Camera cameraMain; 
+    [SerializeField]
+    private Tilemap FogMap; // Black TileMap which covers all tilemaps 
+    [SerializeField]
+    private TileBase[] changabletiles; //Need to add the same tilebase that used in FogMap and one empty tilebase index 1 
+    
+    private Vector3 mousePosition;
+
+    void Start()
+    {
+        agent.updateRotation = false;
+        agent.updateUpAxis = false;
+        agent.speed = 1.0f;
+        agent.acceleration = 100.0f;
+    }
+
+    void Update()
+    {
+        if (agent.isActiveAndEnabled)
+        {
+
+            if (Input.GetMouseButtonDown(0))
+            {
+                targetTile = null;
+                mousePosition = cameraMain.ScreenToWorldPoint(Input.mousePosition);
+            }
+            agent.SetDestination(mousePosition);
+            FogOfWarTile();
+        }
+    }
+
+    private void FogOfWarTile()
+    {
+       Vector3Int underTile =  FogMap.WorldToCell(transform.position);
+
+        if (map.GetTile(underTile) == changabletiles.tiles[0])
+        {
+            map.SetTile(underTile, changabletiles.tiles[1]);
+        }
+    }
+}
