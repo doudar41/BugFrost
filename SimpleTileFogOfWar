@@ -4,14 +4,18 @@ using UnityEngine;
 using UnityEngine.Tilemaps;
 using UnityEngine.AI;
 
-//This script is for player gameObject which moving by clicking on map with NavMesh
+/*
+This script is for player gameObject which moving by clicking on map with NavMesh. 
+I'm using NavMesh2D from here https://github.com/h8man/NavMeshPlus 
+How to install and use https://www.youtube.com/watch?v=SDfEytEjb5o&t=588s
+*/
 
-public class BugAI : MonoBehaviour
+public class SimpleTileFogOfWar : MonoBehaviour
 {
     [SerializeField]
-    private NavMeshAgent agent;
+    private NavMeshAgent agent; //Add NavMeshAgent in Unity Editor
     [SerializeField]
-    private Camera cameraMain; 
+    private Camera cameraMain; //Add Main Camera here 
     [SerializeField]
     private Tilemap FogMap; // Black TileMap which covers all tilemaps 
     [SerializeField]
@@ -21,7 +25,7 @@ public class BugAI : MonoBehaviour
 
     void Start()
     {
-        agent.updateRotation = false;
+        agent.updateRotation = false; 
         agent.updateUpAxis = false;
         agent.speed = 1.0f;
         agent.acceleration = 100.0f;
@@ -42,6 +46,7 @@ public class BugAI : MonoBehaviour
         }
     }
 
+//This function take player position, return tile position, check if it black if yes then change it to transparent 
     private void FogOfWarTile()
     {
        Vector3Int underTile =  FogMap.WorldToCell(transform.position);
