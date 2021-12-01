@@ -34,11 +34,12 @@ public class BugAI : MonoBehaviour
     private Button buildStorage;
     [SerializeField]
     private Button buildRepairShop;
+    [SerializeField]
+    private MessagePanel messagePanel;
 
 
 
-
-    private Collider2D getAll;
+    private Collision2D currentCollision;
 
 
 
@@ -53,12 +54,14 @@ public class BugAI : MonoBehaviour
     private float speedBug = 10;
     static float t = 1.0f;
     private Quaternion rot;
-
+    private bool isMoving = false;
+    private FMOD.Studio.EventInstance movingSound;
 
     // Start is called before the first frame update
     void Start()
     {
-        agent.speed = 0.2f;
+        movingSound = FMODUnity.RuntimeManager.CreateInstance("event:/Moving");
+        agent.speed = 0.9f; 
         agent.acceleration = 200.0f;
         mousePosition = transform.position;
     }
@@ -80,9 +83,13 @@ public class BugAI : MonoBehaviour
                 selectionMap.SetTile(selectionMap.WorldToCell(mousePosition), changabletiles.tiles[1]);
                 targetTile = null;
 
-                
+
                 if (!EventSystem.current.IsPointerOverGameObject())
                 {
+                    if (messagePanel.Panel.active) 
+                    {
+                        messagePanel.ActivateTextPanel(false);
+                    }
                     mousePosition = cameraMain.ScreenToWorldPoint(Input.mousePosition);
                     targetTile = map.GetTile(map.WorldToCell(mousePosition));
                     selectionMap.SetTile(selectionMap.WorldToCell(mousePosition), changabletiles.tiles[2]);
@@ -91,6 +98,7 @@ public class BugAI : MonoBehaviour
             rot.eulerAngles = new Vector3(0,0, AngleTo2(new Vector2(transform.position.x, transform.position.y), new Vector2(mousePosition.x, mousePosition.y))+90);
             transform.rotation = rot;
             agent.SetDestination(mousePosition);
+            PlaySoundWhenMove();
         }
     }
 
@@ -102,13 +110,11 @@ public class BugAI : MonoBehaviour
     }
 
 
-
-    void OnTriggerEnter2D(Collider2D col)
+    private void OnCollisionEnter2D(Collision2D col)
     {
+
         if (col.gameObject.tag == "FoodTile" || col.gameObject.tag == "ResourceTile")
         {
-
-            
             if (col.gameObject.tag == "FoodTile")
             {
                 if (resourceCarrying == 0)
@@ -130,46 +136,47 @@ public class BugAI : MonoBehaviour
             }
         }
 
-        getAll = col;
+        currentCollision = col;
         if (col.gameObject.tag == "Storage")
         {
-            
-            
-            
 
-            
-                if (foodCarrying > 0)
-                {
-                wareHouse.AddRemoveFood(true, true, foodCarrying);
+            if (foodCarrying > 0)
+            {
+                wareHouse.AddRemoveFoodOrResources(true, true, foodCarrying);
                 foodCarrying = wareHouse.amountLeft;
-                    throwButtonText.text = "Throw " + foodCarrying.ToString() + " Food";
-                }
+                throwButtonText.text = "Throw " + foodCarrying.ToString() + " Food";
+                
+            }
 
-                else if (resourceCarrying > 0)
-                {
-                wareHouse.AddRemoveFood(true, false, resourceCarrying);
+            else if (resourceCarrying > 0)
+            {
+                wareHouse.AddRemoveFoodOrResources(true, false, resourceCarrying);
                 resourceCarrying = wareHouse.amountLeft;
-                    throwButtonText.text = "Throw " + resourceCarrying.ToString() + " Resources";
-                }
+                throwButtonText.text = "Throw " + resourceCarrying.ToString() + " Resources";
+                wareHouse.CheckResource();
+            }
 
-            
+
             if (foodCarrying == 0 & resourceCarrying == 0)
             {
                 throwItAll.interactable = false;
                 throwButtonText.text = "Nothing To Throw";
             }
         }
-        Debug.Log(col.gameObject.name);
+        Debug.Log(currentCollision.gameObject.name);
     }
 
-    private void OnTriggerExit2D(Collider2D collision)
+
+
+    private void OnCollisionExit2D(Collision2D collision)
     {
 
+        if (collision.gameObject.name == currentCollision.gameObject.name)
+        {
             takeButtonText.text = "Searching";
             takeItAll.interactable = false;
+        }
     }
-
-    
 
     public void ThrowItAllAction()
     {
@@ -180,22 +187,22 @@ public class BugAI : MonoBehaviour
 
     public void TakeItAllAction()
     {
-        if (getAll.gameObject.tag == "FoodTile")
+        if (currentCollision.gameObject.tag == "FoodTile")
         {
             if (resourceCarrying == 0)
             {
-                FoodTile x = getAll.gameObject.GetComponent<FoodTile>();
+                FoodTile x = currentCollision.gameObject.GetComponent<FoodTile>();
                 foodCarrying += x.food;
                 x.food = 0;
                 throwButtonText.text = "Throw " + foodCarrying.ToString() + " Food";
             }
         }
 
-        if (getAll.gameObject.tag == "ResourceTile")
+        if (currentCollision.gameObject.tag == "ResourceTile")
         {
             if (foodCarrying == 0)
             {
-                ResourceTile res = getAll.gameObject.GetComponent<ResourceTile>();
+                ResourceTile res = currentCollision.gameObject.GetComponent<ResourceTile>();
                 resourceCarrying += res.resource;
                 res.resource = 0;
                 throwButtonText.text = "Throw " + resourceCarrying.ToString() + " Resource";
@@ -217,4 +224,22 @@ public class BugAI : MonoBehaviour
         }
 
     }
+
+
+    private void PlaySoundWhenMove()
+    {
+       if(agent.velocity != new Vector3(0,0,0) & !isMoving)
+        {
+            isMoving = true;
+            movingSound.start();
+        }
+        if (agent.velocity == new Vector3(0, 0, 0) & isMoving)
+        {
+            isMoving = false;
+            movingSound.stop(FMOD.Studio.STOP_MODE.ALLOWFADEOUT);
+        }
+
+    }
+
+
 }
